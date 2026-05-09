@@ -1,0 +1,43 @@
+
+Step 1: Initial Detection (Breaking the Query)
+    • Action: Appended a single quote (') to the parameter value.
+    • Payload: '
+    • Purpose: To disrupt the SQL syntax and check if the application is communicating with a database.
+    • Result: Received an HTTP 500 Internal Server Error, suggesting the query was successfully broken.
+Step 2: Verification (Fixing the Syntax)
+    • Action: Appended two consecutive single quotes ('').
+    • Payload: ''
+    • Purpose: To see if escaping the quote restores the original query logic.
+    • Result: Received an HTTP 200 OK. This confirms that the input is being directly processed by the database engine.
+Step 3: Exploitation - Logic Testing (True Condition)
+    • Action: Injected the payload: Pets'+AND+'1'%3d'1.
+    • Payload: '+AND+'1'%3d'1
+    • Purpose: To confirm control over the database logic using a "True" statement. Instead of using database-specific comments (like -- or #), I utilized Query Balancing. By leaving the last single quote open, I allowed the original query's closing quote to complete my payload. This avoids syntax errors caused by different comment requirements across various database types (MySQL, MSSQL, etc.).
+    • Result: 200 OK and certain value to the Content-Length header
+Step 4: Proof of Concept - Logic Testing (False Condition)
+    • Action: Injected the payload: Pets'+AND+'1'%3d'2.
+    • Payload: '+AND+'1'%3d'2
+    • Purpose: To observe the application's behavior when a "False" statement is injected.
+    • Result: 200 OK and a specific value for the Content-Length header, but it will be different from True Condition
+Step 5: Column Enumeration (Counting)
+    • Action: Use the ORDER BY X-- command, incrementing X (1, 2, 3...).
+    • Payload: '+ORDER+BY+1--
+    • Purpose: To find the exact number of columns being selected by the original query.
+    • Result: The page stays 200 OK until the number exceeds the actual column count, triggering a 500 Error (e.g., Error at 9 means there are 8 columns).
+
+Step 6: Data Mapping (Identifying Reflected Columns)
+    • Action: Inject UNION SELECT NULL, NULL... (matching the count from Step 5) and replace one NULL at a time with a string like 'a'.
+    • Payload: '+UNION+SELECT+NULL,+NULL--
+    • Purpose: To find which columns are "reflected" (displayed) in the website's HTML, allowing you to see your injected data.
+    • Result: When I tested this data and no errors appeared, I was certain that this database was not an Oracle database. By switching the letter 'a' for the word NULL, I was able to determine which column accepted text.
+
+Step 7: Database Fingerprinting
+    • Action: Replace the identified reflected column from Step 6 with a system function like version().
+    • Purpose: To determine the specific database type and version.
+    • Result: If version() returns a successful response (200 OK), the database is identified as PostgreSQL (or potentially MySQL/MariaDB).
+
+Step 8: Final Exfiltration (Proof of Concept)
+    • Action: Inject the verified function (e.g., version()) into all text-compatible columns identified in Step 6.
+    • Purpose: To extract official system data to serve as an undeniable Proof of Concept (PoC) for your report.
+    • Result: The full version string (e.g., "PostgreSQL 12.15...") is displayed on the page.
+

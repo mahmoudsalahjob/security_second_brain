@@ -1,0 +1,18 @@
+﻿Step 1: Initial Detection (Breaking the Query)
+    • Action: Appended a single quote (') to the end of the TrackingId cookie value.
+    • Purpose: To disrupt the backend SQL syntax and observe if the application's response changes, which would indicate potential database interaction.
+    • Result: The Content-Length of the response notably decreased compared to a normal request, suggesting the SQL query was broken and the application logic was affected.
+Step 2: Verification (Fixing the Syntax) 
+I confirmed that the vulnerability is Blind SQLi. Consequently, I skipped the double single quote ('') test and proceeded directly to injecting Boolean-based payloads (True/False conditions) for further confirmation."
+    • Action: Appended two consecutive single quotes ('') to the TrackingId cookie value.
+    • Purpose: To safely escape the initial quote and verify if the application's response returns to its normal baseline state.
+    • Result: The Content-Length returned to its original, expected size. This confirms that the input is being directly parsed and evaluated by the database engine.
+Step 3: Exploitation - Logic Testing (True Condition)
+    • Action: Injected the payload TrackingId=value' AND '1'='1 into the cookie.
+    • Purpose: To confirm control over the database logic using a statement that explicitly evaluates to True, without breaking the underlying syntax.
+    • Result: The Content-Length remained at its original, expected size (matching the baseline response). The database evaluated the condition as True and returned the normal content.
+Step 4: Proof of Concept - Logic Testing (False Condition)
+    • Action: Injected the payload TrackingId=value' AND '1'='2 into the cookie.
+    • Purpose: To observe the application's behavior when a statement that evaluates to False is injected, proving Boolean-based control over the query execution.
+    • Result: The Content-Length decreased, mirroring the behavior observed in Step 1. This definitive and controllable difference in response size between True and False conditions serves as a solid Proof of Concept for a Boolean-Based Blind SQL Injection vulnerability.
+

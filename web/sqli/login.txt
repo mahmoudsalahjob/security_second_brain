@@ -1,0 +1,23 @@
+﻿### **Step 1: Account Setup & Preparation**
+* **Action:** Navigated to the login page, created a new account with a known username (e.g., `test`), and then logged out to return to the login interface.
+* **Purpose:** To establish a valid, known user account on the system to accurately test the authentication logic and potential bypass techniques.
+* **Result:** The account `test` was successfully created, and the testing environment was prepped.
+
+### **Step 2: Initial Detection (Breaking the Query)**
+* **Action:** Entered the known username appended with a single quote (`test'`) in the username field, and typed a random password.
+* **Purpose:** To disrupt the backend SQL syntax and verify if the application is unsafely processing input into the database.
+* **Result:** Received an **HTTP 500 Internal Server Error**, strongly suggesting the SQL query was successfully broken and the field is potentially vulnerable.
+
+### **Step 3: Verification (Fixing the Syntax)**
+* **Action:** Appended two consecutive single quotes to the username (`test''`) and entered a random password.
+* **Purpose:** To observe if escaping the quote correctly restores the original query logic and syntax.
+* **Result:** Received an **HTTP 200 OK** (typically indicating a standard authentication failure). This confirms the input is being directly parsed and processed by the database engine.
+
+### **Step 4: Exploitation (Authentication Bypass)**
+* **Action:** Injected the payload `test' or 1=1 --` into the username field, entered a random value in the password field, and clicked the **"Login"** button.
+* **Purpose:** To manipulate the SQL query logic. The `'` closes the username string, `or 1=1` forces a True condition, and `--` comments out the remainder of the query (which includes the password verification check).
+* **Result:** The system **successfully authenticated** the session and granted access to the `test` account, completely bypassing the intended password requirement.
+
+---
+
+
