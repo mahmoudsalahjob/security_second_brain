@@ -1,86 +1,130 @@
-scenario 1 (parameter):
-	Step 1: Initial Detection (Breaking the Query)
-		• Action: Appended a single quote (') to the parameter value.
-		• Payload: '
-		• Purpose: To disrupt the SQL syntax and check if the application is communicating with a database.
-		• Result: Received an HTTP 500 Internal Server Error, suggesting the query was successfully broken.
-	Step 2: Verification (Fixing the Syntax)
-		• Action: Appended two consecutive single quotes ('').
-		• Payload: ''
-		• Purpose: To see if escaping the quote restores the original query logic.
-		• Result: Received an HTTP 200 OK. This confirms that the input is being directly processed by the database engine.
-	Step 3: Exploitation - Logic Testing (True Condition)
-		• Action: Injected the payload: Pets'+AND+'1'%3d'1.
-		• Payload: '+AND+'1'%3d'1
-		• Purpose: To confirm control over the database logic using a "True" statement. Instead of using database-specific comments (like -- or #), I utilized Query Balancing. By leaving the last single quote open, I allowed the original query's closing quote to complete my payload. This avoids syntax errors caused by different comment requirements across various database types (MySQL, MSSQL, etc.).
-		• Result: 200 OK and certain value to the Content-Length header
-	Step 4: Proof of Concept - Logic Testing (False Condition)
-		• Action: Injected the payload: Pets'+AND+'1'%3d'2.
-		• Payload: '+AND+'1'%3d'2
-		• Purpose: To observe the application's behavior when a "False" statement is injected.
-		• Result: 200 OK and a specific value for the Content-Length header, but it will be different from True Condition
-	Step 5: Column Enumeration (Counting)
-		• Action: Use the ORDER BY X-- command, incrementing X (1, 2, 3...).
-		• Payload: '+ORDER+BY+1--
-		• Purpose: To find the exact number of columns being selected by the original query.
-		• Result: The page stays 200 OK until the number exceeds the actual column count, triggering a 500 Error (e.g., Error at 9 means there are 8 columns).
+parameter:
+	scenario 1:
+		Step 1: Initial Detection (Breaking the Query)
+			- Action: Appended a single quote (') to the parameter value.
+			- Payload: '
+			- Purpose: To disrupt the SQL syntax and check if the application is communicating with a database.
+			- Result: Received an HTTP 500 Internal Server Error, suggesting the query was successfully broken.
+		Step 2: Verification (Fixing the Syntax)
+			- Action: Appended two consecutive single quotes ('').
+			- Payload: ''
+			- Purpose: To see if escaping the quote restores the original query logic.
+			- Result: Received an HTTP 200 OK. This confirms that the input is being directly processed by the database engine.
+		Step 3: Exploitation - Logic Testing (True Condition)
+			- Action: Injected the payload: Pets'+AND+'1'%3d'1.
+			- Payload: '+AND+'1'%3d'1--
+			- Purpose: To confirm control over the database logic using a "True" statement. Instead of using database-specific comments (like -- or #), I utilized Query Balancing. By leaving the last single quote open, I allowed the original query's closing quote to complete my payload. This avoids syntax errors caused by different comment requirements across various database types (MySQL, MSSQL, etc.).
+			- Result: 200 OK and certain value to the Content-Length header
+		Step 4: Proof of Concept - Logic Testing (False Condition)
+			- Action: Injected the payload: Pets'+AND+'1'%3d'2.
+			- Payload: '+AND+'1'%3d'2--
+			- Purpose: To observe the application's behavior when a "False" statement is injected.
+			- Result: 200 OK and a specific value for the Content-Length header, but it will be different from True Condition
+		Step 5: Column Enumeration (Counting)
+			- Action: Use the ORDER BY X-- command, incrementing X (1, 2, 3...).
+			- Payload: '+ORDER+BY+1--
+			- Purpose: To find the exact number of columns being selected by the original query.
+			- Result: The page stays 200 OK until the number exceeds the actual column count, triggering a 500 Error (e.g., Error at 9 means there are 8 columns).
 
-	Step 6: Data Mapping (Identifying Reflected Columns)
-		• Action: Inject UNION SELECT NULL, NULL... (matching the count from Step 5) and replace one NULL at a time with a string like 'a'.
-		• Payload: '+UNION+SELECT+NULL,+NULL--
-		• Purpose: To find which columns are "reflected" (displayed) in the website's HTML, allowing you to see your injected data.
-		• Result: When I tested this data and no errors appeared, I was certain that this database was not an Oracle database. By switching the letter 'a' for the word NULL, I was able to determine which column accepted text.
+		Step 6: Data Mapping (Identifying Reflected Columns)
+			- Action: Inject UNION SELECT NULL, NULL... (matching the count from Step 5) and replace one NULL at a time with a string like 'a'.
+			- Payload: '+UNION+SELECT+NULL,+NULL--
+			- Purpose: To find which columns are "reflected" (displayed) in the website's HTML, allowing you to see your injected data.
+			- Result: When I tested this data and no errors appeared, I was certain that this database was not an Oracle database. By switching the letter 'a' for the word NULL, I was able to determine which column accepted text.
 
-	Step 7: Database Fingerprinting
-		• Action: Replace the identified reflected column from Step 6 with a system function like version().
-		• Purpose: To determine the specific database type and version.
-		• Result: If version() returns a successful response (200 OK), the database is identified as PostgreSQL (or potentially MySQL/MariaDB).
+		Step 7: Database Fingerprinting
+			- Action: Replace the identified reflected column from Step 6 with a system function like version().
+			- Purpose: To determine the specific database type and version.
+			- Result: If version() returns a successful response (200 OK), the database is identified as PostgreSQL (or potentially MySQL/MariaDB).
 
-	Step 8: Final Exfiltration (Proof of Concept)
-		• Action: Inject the verified function (e.g., version()) into all text-compatible columns identified in Step 6.
-		• Purpose: To extract official system data to serve as an undeniable Proof of Concept (PoC) for your report.
-		• Result: The full version string (e.g., "PostgreSQL 12.15...") is displayed on the page.
+		Step 8: Final Exfiltration (Proof of Concept)
+			- Action: Inject the verified function (e.g., version()) into all text-compatible columns identified in Step 6.
+			- Purpose: To extract official system data to serve as an undeniable Proof of Concept (PoC) for your report.
+			- Result: The full version string (e.g., "PostgreSQL 12.15...") is displayed on the page.
 
-========================================================================
+	========================================================================
 
-scenario 2 (parameter):
-	Step 1: Initial Detection (Breaking the Query)
-		• Action: Appended a single quote (') to the parameter value.
-		• Payload: '
-		• Purpose: To disrupt the SQL syntax and check if the application is communicating with a database.
-		• Result: Received an HTTP 500 Internal Server Error, suggesting the query was successfully broken.
-	Step 2: Verification (Fixing the Syntax)
-		• Action: Appended two consecutive single quotes ('').
-		• Payload: ''
-		• Purpose: To see if escaping the quote restores the original query logic.
-		• Result: Received an HTTP 200 OK. This confirms that the input is being directly processed by the database engine.
-	Step 3: Exploitation - Logic Testing (True Condition)
-		• Action: Injected the payload: Pets'+AND+'1'%3d'1.
-		• Payload: '+AND+'1'%3d'1
-		• Purpose: To confirm control over the database logic using a "True" statement. Instead of using database-specific comments (like -- or #), I utilized Query Balancing. By leaving the last single quote open, I allowed the original query's closing quote to complete my payload. This avoids syntax errors caused by different comment requirements across various database types (MySQL, MSSQL, etc.).
-		• Result: 200 OK and certain value to the Content-Length header
-	Step 4: Proof of Concept - Logic Testing (False Condition)
-		• Action: Injected the payload: Pets'+AND+'1'%3d'2.
-		• Payload: '+AND+'1'%3d'2
-		• Purpose: To observe the application's behavior when a "False" statement is injected.
-		• Result: 200 OK and a specific value for the Content-Length header, but it will be different from True Condition
-	Step 5: Column Enumeration (Counting)
-		• Action: Use the ORDER BY X-- command, incrementing X (1, 2, 3...).
-		• Payload: '+ORDER+BY+2--
-		• Purpose: To find the exact number of columns being selected by the original query.
-		• Result: The page returns a 200 OK status when I use the payload '+ORDER+BY+2--, but it triggers a 500 Error with '+ORDER+BY+3--. This indicates that the number of columns is exactly 2.
-	Step 6: Data Mapping (Identifying Reflected Columns)
-		• Action: I injected the payload UNION SELECT NULL, NULL FROM dual. I added FROM dual because the request triggered a 500 Internal Server Error without it, but returned a 200 OK once included. This confirms that the back-end database is Oracle. Now, I will start replacing each NULL value one by one with the character 'a' to test for string-compatible columns.
-		• Payload: '+UNION+SELECT+NULL,+NULL+FROM+dual--
-		• Purpose: To find which columns are "reflected" (displayed) in the website's HTML, allowing you to see your injected data.
-		• Result: After testing the payload '+UNION+SELECT+'a',+'a'+FROM+dual-- and receiving a 200 OK response, I confirmed that both columns accept string data.
-	Step 7: Database Fingerprinting
-		• Action: I will replace the previous payload with: ' UNION SELECT BANNER, NULL FROM v$version--
-		• Payload: '+UNION+SELECT+BANNER,+NULL+FROM+v$version--
-		• Purpose: To extract the version information from the Oracle database.
-		• Result: The response was 200 OK, confirming the successful extraction of the database version.
+	scenario 2:
+		Step 1: Initial Detection (Breaking the Query)
+			- Action: Appended a single quote (') to the parameter value.
+			- Payload: '
+			- Purpose: To disrupt the SQL syntax and check if the application is communicating with a database.
+			- Result: Received an HTTP 500 Internal Server Error, suggesting the query was successfully broken.
+		Step 2: Verification (Fixing the Syntax)
+			- Action: Appended two consecutive single quotes ('').
+			- Payload: ''
+			- Purpose: To see if escaping the quote restores the original query logic.
+			- Result: Received an HTTP 200 OK. This confirms that the input is being directly processed by the database engine.
+		Step 3: Exploitation - Logic Testing (True Condition)
+			- Action: Injected the payload: Pets'+AND+'1'%3d'1.
+			- Payload: '+AND+'1'%3d'1--
+			- Purpose: To confirm control over the database logic using a "True" statement. Instead of using database-specific comments (like -- or #), I utilized Query Balancing. By leaving the last single quote open, I allowed the original query's closing quote to complete my payload. This avoids syntax errors caused by different comment requirements across various database types (MySQL, MSSQL, etc.).
+			- Result: 200 OK and certain value to the Content-Length header
+		Step 4: Proof of Concept - Logic Testing (False Condition)
+			- Action: Injected the payload: Pets'+AND+'1'%3d'2.
+			- Payload: '+AND+'1'%3d'2--
+			- Purpose: To observe the application's behavior when a "False" statement is injected.
+			- Result: 200 OK and a specific value for the Content-Length header, but it will be different from True Condition
+		Step 5: Column Enumeration (Counting)
+			- Action: Use the ORDER BY X-- command, incrementing X (1, 2, 3...).
+			- Payload: '+ORDER+BY+2--
+			- Purpose: To find the exact number of columns being selected by the original query.
+			- Result: The page returns a 200 OK status when I use the payload '+ORDER+BY+2--, but it triggers a 500 Error with '+ORDER+BY+3--. This indicates that the number of columns is exactly 2.
+		Step 6: Data Mapping (Identifying Reflected Columns)
+			- Action: I injected the payload UNION SELECT NULL, NULL FROM dual. I added FROM dual because the request triggered a 500 Internal Server Error without it, but returned a 200 OK once included. This confirms that the back-end database is Oracle. Now, I will start replacing each NULL value one by one with the character 'a' to test for string-compatible columns.
+			- Payload: '+UNION+SELECT+NULL,+NULL+FROM+dual--
+			- Purpose: To find which columns are "reflected" (displayed) in the website's HTML, allowing you to see your injected data.
+			- Result: After testing the payload '+UNION+SELECT+'a',+'a'+FROM+dual-- and receiving a 200 OK response, I confirmed that both columns accept string data.
+		Step 7: Database Fingerprinting
+			- Action: I will replace the previous payload with: ' UNION SELECT BANNER, NULL FROM v$version--
+			- Payload: '+UNION+SELECT+BANNER,+NULL+FROM+v$version--
+			- Purpose: To extract the version information from the Oracle database.
+			- Result: The response was 200 OK, confirming the successful extraction of the database version.
+		Step 8: Final Exfiltration (Proof of Concept)
+			- Action: Since it's an Oracle database, I searched for the string 'Oracle Database' within the Burp Suite history/responses.
+			- Purpose: I searched for the string 'Oracle Database' because the version banner in Oracle follows a standard template: 'Oracle Database [Version_Name] [Edition_Type] Edition Release [Full_Version_Number] - [Architecture] Production'. By searching for this static component, I was able to locate the version line efficiently.
+			- Result: I successfully retrieved the database version, which was identified as: 'Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production, PL/SQL Release 11.2.0.2.0 - Production, CORE 11.2.0.2.0 Production, TNS for Linux: Version 11.2.0.2.0 - Production, NLSRTL Version 11.2.0.2.0 - Production'.
 
-	Step 8: Final Exfiltration (Proof of Concept)
-		• Action: Since it's an Oracle database, I searched for the string 'Oracle Database' within the Burp Suite history/responses.
-		• Purpose: I searched for the string 'Oracle Database' because the version banner in Oracle follows a standard template: 'Oracle Database [Version_Name] [Edition_Type] Edition Release [Full_Version_Number] - [Architecture] Production'. By searching for this static component, I was able to locate the version line efficiently.
-		• Result: I successfully retrieved the database version, which was identified as: 'Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production, PL/SQL Release 11.2.0.2.0 - Production, CORE 11.2.0.2.0 Production, TNS for Linux: Version 11.2.0.2.0 - Production, NLSRTL Version 11.2.0.2.0 - Production'.
+	========================================================================
+
+	scenario 3:
+		Step 1: Initial Detection (Breaking the Query)
+			- Action: Appended a single quote (') to the parameter value.
+			- Payload: '
+			- Purpose: To disrupt the SQL syntax and check if the application is communicating with a database.
+			- Result: Received an HTTP 500 Internal Server Error, suggesting the query was successfully broken.
+		Step 2: Verification (Fixing the Syntax)
+			- Action: Appended two consecutive single quotes ('').
+			- Payload: ''
+			- Purpose: To see if escaping the quote restores the original query logic.
+			- Result: Received an HTTP 200 OK. This confirms that the input is being directly processed by the database engine.
+		Step 3: Exploitation - Logic Testing (True Condition)
+			- Action: Injected the payload: Pets'+AND+'1'%3d'1.
+			- Payload: '+AND+'1'%3d'1--
+			- Purpose: To confirm control over the database logic using a "True" statement. Instead of using database-specific comments (like -- or #), I utilized Query Balancing. By leaving the last single quote open, I allowed the original query's closing quote to complete my payload. This avoids syntax errors caused by different comment requirements across various database types (MySQL, MSSQL, etc.).
+			- Result: 200 OK and certain value to the Content-Length header
+		Step 4: Proof of Concept - Logic Testing (False Condition)
+			- Action: Injected the payload: Pets'+AND+'1'%3d'2.
+			- Payload: '+AND+'1'%3d'2--
+			- Purpose: To observe the application's behavior when a "False" statement is injected.
+			- Result: 200 OK and a specific value for the Content-Length header, but it will be different from True Condition
+		Step 5: Column Enumeration (Counting)
+			- Action: Use the ORDER BY X command, incrementing X (1, 2, 3...).
+			- Payload: '+ORDER+BY+2--
+			- Purpose: To find the exact number of columns being selected by the original query.
+			- Result: The application returns a 500 Internal Server Error when using the payload '+ORDER+BY+2--, yet yields a 200 OK when a trailing space is added ('+ORDER+BY+2--+). This behavior confirms the backend database is MySQL or MariaDB, as these systems require a space after a double-dash comment.
+		Step 6: Column Enumeration (Counting)
+			- Action: Use the ORDER BY X command, incrementing X (1, 2, 3...).
+			- Payload: '+ORDER+BY+2--+
+			- Purpose: To find the exact number of columns being selected by the original query.
+			- Result: Furthermore, the 500 error triggered by '+ORDER+BY+3--+ confirms that the query selects exactly two columns.
+		Step 6: Data Mapping (Identifying Reflected Columns)
+			- Action: I injected the payload UNION SELECT NULL, NULL. Now, I will start replacing each NULL value one by one with the character 'a' to test for string-compatible columns.
+			- Payload: '+UNION+SELECT+NULL,+NULL--+
+			- Purpose: To find which columns are "reflected" (displayed) in the website's HTML, allowing you to see your injected data.
+			- Result: After testing the payload '+UNION+SELECT+'a',+'a'--+ and receiving a 200 OK response, I confirmed that both columns accept string data.
+		Step 7: Database Fingerprinting
+			- Action: I will replace the previous payload with: '+UNION+SELECT+VERSION(),+VERSION()--+
+			- Payload: '+UNION+SELECT+VERSION(),+VERSION()--+
+			- Purpose: To extract the version information from the Oracle database.
+			- Result: The response was 200 OK, confirming the successful extraction of the database version.
